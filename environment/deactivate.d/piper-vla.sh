@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+export LD_LIBRARY_PATH="${PIPER_VLA_SAVED_LD_LIBRARY_PATH-}"
+unset PIPER_VLA_SAVED_LD_LIBRARY_PATH
