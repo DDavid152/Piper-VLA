@@ -1,22 +1,52 @@
 # Upstream source checkouts
-third_party/
+/third_party/
 
-# Local datasets, models, and caches
-data/
-datasets/
-outputs/
-checkpoints/
-.cache/
-Log/
+# Local hardware/runtime logs (keep only the empty directory marker)
+/logs/*
+!/logs/.gitkeep
+/Log/
+
+# Local datasets, recordings, models, and training outputs
+/data/
+/datasets/
+/recordings/
+/captures/
+/outputs/
+/checkpoints/
+/models/
+/weights/
+/artifacts/
+/runs/
+/wandb/
+/mlruns/
+
+# Download and tool caches
+/.cache/
+/.huggingface/
+.ipynb_checkpoints/
 
 # Python/build artifacts
 __pycache__/
 *.py[cod]
 *.egg-info/
+/.venv/
+/venv/
 .pytest_cache/
 .ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
 build/
 dist/
+
+# Local temporary files and environment secrets
+/tmp/
+/temp/
+*.tmp
+*.swp
+.env
+.env.*
+!.env.example
 
 # Editor and OS files
 .vscode/

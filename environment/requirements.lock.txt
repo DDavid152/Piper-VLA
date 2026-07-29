@@ -39,6 +39,9 @@ idna==3.18
 Jinja2==3.1.6
 jsonlines==4.0.0
 -e git+https://github.com/huggingface/lerobot.git@30da8e687a6dfc617fcd94afc367ac7071c376ce#egg=lerobot
+-e ../plugins/lerobot_camera_orbbec
+-e ../plugins/lerobot_robot_piper
+-e ../plugins/lerobot_teleoperator_piper
 markdown-it-py==4.2.0
 MarkupSafe==3.0.3
 mdurl==0.1.2

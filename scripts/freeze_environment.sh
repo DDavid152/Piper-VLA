@@ -15,6 +15,21 @@ conda env export --no-builds \
   | sed '/^prefix:/d' \
   > "${ENV_DIR}/environment.resolved.yml"
 python -m pip freeze --all --exclude pip \
+  | awk '
+      /#egg=lerobot_camera_orbbec&subdirectory=plugins\/lerobot_camera_orbbec$/ {
+        print "-e ../plugins/lerobot_camera_orbbec"
+        next
+      }
+      /#egg=lerobot_robot_piper&subdirectory=plugins\/lerobot_robot_piper$/ {
+        print "-e ../plugins/lerobot_robot_piper"
+        next
+      }
+      /#egg=lerobot_teleoperator_piper&subdirectory=plugins\/lerobot_teleoperator_piper$/ {
+        print "-e ../plugins/lerobot_teleoperator_piper"
+        next
+      }
+      { print }
+    ' \
   > "${ENV_DIR}/requirements.lock.txt"
 python -m pip inspect \
   > "${ENV_DIR}/pip-inspect.json"

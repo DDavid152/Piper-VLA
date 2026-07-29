@@ -3183,6 +3183,31 @@
     {
       "metadata": {
         "metadata_version": "2.4",
+        "name": "lerobot_camera_orbbec",
+        "version": "0.1.0",
+        "summary": "Orbbec SDK v2 camera plugin for LeRobot",
+        "description": "# LeRobot Orbbec camera plugin\n\nThis package adds the `orbbec` camera type to LeRobot v0.6.0. It targets\nOrbbec SDK v2 cameras and selects devices by immutable serial number rather\nthan `/dev/video*` enumeration order.\n\nThe Piper-VLA workstation configuration is stored in\n`../../config/cameras.json`:\n\n- `front`: Gemini 335L `CP28563000XR`, remote fixed view;\n- `wrist`: Gemini 335L `CP28563000XP`, end-effector view;\n- RGB: 640×480 at 30 FPS;\n- depth: disabled for the first SmolVLA dataset stage.\n\nInstall the plugin in the existing environment:\n\n```bash\nsource /home/ubuntu22/miniforge3/etc/profile.d/conda.sh\nconda activate lerobot\npython -m pip install --editable /home/ubuntu22/Piper-VLA/plugins/lerobot_camera_orbbec\n```\n\nMinimal use:\n\n```python\nfrom lerobot_camera_orbbec import OrbbecCamera, OrbbecCameraConfig\n\ncamera = OrbbecCamera(\n    OrbbecCameraConfig(\n        serial_number=\"CP28563000XR\",\n        width=640,\n        height=480,\n        fps=30,\n    )\n)\ncamera.connect()\nimage = camera.async_read()\ncamera.disconnect()\n```\n\n`OrbbecCamera` captures continuously in a background thread. A caller receives\nthe newest unconsumed frame through `async_read()` or can inspect the current\nbuffer through `read_latest()`. Timeouts, frame-index gaps, duplicate indices,\ntimestamp regressions and the latest frame age are available from\n`get_health_stats()`.\n\nThe optional depth API exists for hardware diagnostics, but project recording\nmust leave `use_depth=False` until the dataset schema is deliberately revised.\n",
+        "description_content_type": "text/markdown",
+        "requires_dist": [
+          "lerobot",
+          "numpy",
+          "pyorbbecsdk2==2.0.18"
+        ],
+        "requires_python": ">=3.10"
+      },
+      "metadata_location": "/home/ubuntu22/miniforge3/envs/lerobot/lib/python3.12/site-packages/lerobot_camera_orbbec-0.1.0.dist-info",
+      "direct_url": {
+        "url": "file:///home/ubuntu22/Piper-VLA/plugins/lerobot_camera_orbbec",
+        "dir_info": {
+          "editable": true
+        }
+      },
+      "installer": "pip",
+      "requested": true
+    },
+    {
+      "metadata": {
+        "metadata_version": "2.4",
         "name": "platformdirs",
         "version": "4.11.0",
         "summary": "A small Python package for determining appropriate platform-specific dirs, e.g. a `user data dir`.",
@@ -4556,6 +4581,30 @@
       "metadata_location": "/home/ubuntu22/miniforge3/envs/lerobot/lib/python3.12/site-packages/tzdata-2026.3.dist-info",
       "installer": "pip",
       "requested": false
+    },
+    {
+      "metadata": {
+        "metadata_version": "2.4",
+        "name": "lerobot_robot_piper",
+        "version": "0.1.0",
+        "summary": "Read-only Piper follower plugin for LeRobot native master/slave recording",
+        "description": "# LeRobot Piper robot plugin\n\nThis package registers `--robot.type=piper` for the Piper-VLA workstation.\nIt is intentionally limited to the verified Piper native master/slave control\nchain:\n\n- the two arms perform teleoperation directly on their shared CAN bus;\n- the plugin passively reads follower feedback and the configured cameras;\n- `connect()` uses `piper_init=False` and sends no SDK initialization queries;\n- `send_action()` validates and returns the recorded action but never transmits\n  it to the follower;\n- calibration, configuration, enable, homing, reset and disconnect are all\n  non-moving operations.\n\nThe seven scalar state/action fields are `joint_1.pos` through `joint_6.pos`\nin degrees and `gripper.pos` in millimeters. The CAN interface is accepted only\nwhen its USB adapter serial matches the configured shared-bus adapter.\n\nThis plugin does not implement LeRobot active control. Adding an active mode\nwould require a separate safety review and must not be combined with native\nmaster/slave teleoperation.\n",
+        "description_content_type": "text/markdown",
+        "requires_dist": [
+          "lerobot",
+          "piper-sdk==0.6.1"
+        ],
+        "requires_python": ">=3.12"
+      },
+      "metadata_location": "/home/ubuntu22/miniforge3/envs/lerobot/lib/python3.12/site-packages/lerobot_robot_piper-0.1.0.dist-info",
+      "direct_url": {
+        "url": "file:///home/ubuntu22/Piper-VLA/plugins/lerobot_robot_piper",
+        "dir_info": {
+          "editable": true
+        }
+      },
+      "installer": "pip",
+      "requested": true
     },
     {
       "metadata": {
@@ -7196,6 +7245,30 @@
       "metadata_location": "/home/ubuntu22/miniforge3/envs/lerobot/lib/python3.12/site-packages/draccus-0.10.0.dist-info",
       "installer": "pip",
       "requested": false
+    },
+    {
+      "metadata": {
+        "metadata_version": "2.4",
+        "name": "lerobot_teleoperator_piper",
+        "version": "0.1.0",
+        "summary": "Passive Piper master target reader for LeRobot native master/slave recording",
+        "description": "# LeRobot Piper master teleoperator plugin\n\nThis package registers `--teleop.type=piper_master`. It opens a passive\nSocketCAN receive socket on the already-running Piper shared bus and reads:\n\n- master target frames `0x155`, `0x156`, `0x157`, and `0x159`;\n- follower state frames `0x2A1`, `0x2A5`, `0x2A6`, `0x2A7`, and `0x2A8`.\n\nComplete, coherent master target triplets become the seven-dimensional LeRobot\naction in degrees and millimeters. Before the first master target arrives, the\nfresh follower state is used as the held target so that a stationary recording\ncan start safely. The last complete master target remains valid while the\nnative controller holds it.\n\nThe plugin never calls `Bus.send()`. `send_feedback()`, calibration,\nconfiguration and disconnect are non-transmitting operations. It also checks\nthe USB-CAN serial before opening the receive socket.\n",
+        "description_content_type": "text/markdown",
+        "requires_dist": [
+          "lerobot",
+          "python-can==4.6.1"
+        ],
+        "requires_python": ">=3.12"
+      },
+      "metadata_location": "/home/ubuntu22/miniforge3/envs/lerobot/lib/python3.12/site-packages/lerobot_teleoperator_piper-0.1.0.dist-info",
+      "direct_url": {
+        "url": "file:///home/ubuntu22/Piper-VLA/plugins/lerobot_teleoperator_piper",
+        "dir_info": {
+          "editable": true
+        }
+      },
+      "installer": "pip",
+      "requested": true
     },
     {
       "metadata": {

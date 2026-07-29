@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "control_chain": "native_master_slave",
+  "can": {
+    "interface": "can0",
+    "bitrate": 1000000,
+    "expected_adapter_serial": "002900225547571120343930",
+    "master_diagnostic_adapter_serial": "0033002F5547571120343930"
+  },
+  "units": {
+    "joints": "degrees",
+    "gripper": "millimeters"
+  },
+  "features": [
+    "joint_1.pos",
+    "joint_2.pos",
+    "joint_3.pos",
+    "joint_4.pos",
+    "joint_5.pos",
+    "joint_6.pos",
+    "gripper.pos"
+  ],
+  "safety": {
+    "robot_plugin_read_only": true,
+    "teleoperator_plugin_read_only": true,
+    "software_actuation_forbidden": true,
+    "automatic_enable_forbidden": true,
+    "automatic_homing_forbidden": true
+  }
+}

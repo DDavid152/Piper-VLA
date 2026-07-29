@@ -33,6 +33,9 @@ modules = [
     "can",
     "piper_sdk",
     "pyorbbecsdk",
+    "lerobot_camera_orbbec",
+    "lerobot_robot_piper",
+    "lerobot_teleoperator_piper",
 ]
 
 versions = {}
@@ -64,6 +67,41 @@ lerobot-record --help >/dev/null
 lerobot-train --help >/dev/null
 lerobot-dataset-viz --help >/dev/null
 echo "LeRobot CLI smoke tests passed."
+
+python - <<'PY'
+from pathlib import Path
+
+import draccus
+from lerobot.robots import RobotConfig
+from lerobot.scripts.lerobot_record import RecordConfig
+from lerobot.teleoperators import TeleoperatorConfig
+from lerobot.utils.import_utils import register_third_party_plugins
+
+register_third_party_plugins()
+assert RobotConfig.get_choice_class("piper")().type == "piper"
+assert TeleoperatorConfig.get_choice_class("piper_master")().type == "piper_master"
+config = draccus.parse(
+    RecordConfig,
+    config_path=Path(
+        "/home/ubuntu22/Piper-VLA/config/record_piper_native.example.yaml"
+    ),
+    args=[],
+)
+assert sorted(config.robot.cameras) == ["front", "wrist"]
+print("Piper/Orbbec plugin discovery and recording-template decode passed.")
+PY
+
+if rg -n \
+  --glob '*.py' \
+  '\.send\(|SendCanMessage|JointCtrl\(|GripperCtrl\(|MotionCtrl|EnableArm|ReqMasterArmMoveToHome' \
+  "${PROJECT_ROOT}/plugins/lerobot_robot_piper" \
+  "${PROJECT_ROOT}/plugins/lerobot_teleoperator_piper"; then
+  echo "A forbidden Piper transmit/control call was found." >&2
+  exit 1
+fi
+echo "Piper plugin receive-only source check passed."
+
+python -m unittest discover -s "${PROJECT_ROOT}/tests" -v
 
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf -- "${tmp_dir}"' EXIT

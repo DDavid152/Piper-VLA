@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=71,<81", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lerobot_teleoperator_piper"
+version = "0.1.0"
+description = "Passive Piper master target reader for LeRobot native master/slave recording"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "lerobot",
+  "python-can==4.6.1",
+]
+
+[tool.setuptools.packages.find]
+include = ["lerobot_teleoperator_piper*"]

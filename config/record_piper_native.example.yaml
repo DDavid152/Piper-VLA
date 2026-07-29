@@ -1,0 +1,51 @@
+robot:
+  type: piper
+  id: piper_follower
+  can_interface: can0
+  expected_adapter_serial: "002900225547571120343930"
+  control_chain: native_master_slave
+  cameras:
+    front:
+      type: orbbec
+      serial_number: CP28563000XR
+      width: 640
+      height: 480
+      fps: 30
+      color_mode: rgb
+      use_depth: false
+      timeout_ms: 1000
+      warmup_s: 2.0
+    wrist:
+      type: orbbec
+      serial_number: CP28563000XP
+      width: 640
+      height: 480
+      fps: 30
+      color_mode: rgb
+      use_depth: false
+      timeout_ms: 1000
+      warmup_s: 2.0
+
+teleop:
+  type: piper_master
+  id: piper_master
+  can_interface: can0
+  expected_adapter_serial: "002900225547571120343930"
+  control_chain: native_master_slave
+
+dataset:
+  repo_id: local/piper_test
+  root: /home/ubuntu22/Piper-VLA/datasets/piper_test
+  single_task: REPLACE_WITH_THE_EXACT_TASK_INSTRUCTION
+  fps: 30
+  episode_time_s: 10
+  reset_time_s: 5
+  num_episodes: 1
+  video: true
+  push_to_hub: false
+  streaming_encoding: true
+  encoder_threads: 2
+
+display_data: false
+play_sounds: false
+resume: false

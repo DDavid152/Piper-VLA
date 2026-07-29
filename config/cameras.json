@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "backend": "orbbec",
+  "capture": {
+    "width": 640,
+    "height": 480,
+    "fps": 30,
+    "color_mode": "rgb",
+    "depth_enabled": false,
+    "timeout_ms": 1000,
+    "warmup_s": 2.0
+  },
+  "cameras": {
+    "front": {
+      "serial_number": "CP28563000XR",
+      "physical_role": "remote_fixed"
+    },
+    "wrist": {
+      "serial_number": "CP28563000XP",
+      "physical_role": "end_effector"
+    }
+  }
+}
