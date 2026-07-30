@@ -188,6 +188,33 @@ class PiperRobot(Robot):
         self._validate_values(values, source="observation")
         return values
 
+    def _read_arm_state_with_recovery(self) -> dict[str, float]:
+        """Return only fresh feedback, retrying a transient host-side stall."""
+        deadline = time.perf_counter() + self.config.state_recovery_timeout_s
+        first_error: TimeoutError | None = None
+        while True:
+            try:
+                state = self._read_arm_state()
+                if first_error is not None:
+                    logger.info(
+                        "Piper feedback recovered after a transient host stall."
+                    )
+                return state
+            except TimeoutError as exc:
+                if first_error is None:
+                    first_error = exc
+                    logger.warning(
+                        "Piper feedback is temporarily stale; waiting up to "
+                        "%.2fs for a fresh sample.",
+                        self.config.state_recovery_timeout_s,
+                    )
+                if time.perf_counter() >= deadline:
+                    raise TimeoutError(
+                        "Piper feedback did not recover within "
+                        f"{self.config.state_recovery_timeout_s:.2f}s."
+                    ) from exc
+                time.sleep(self.config.state_retry_interval_s)
+
     def _validate_values(self, values: dict[str, float], *, source: str) -> None:
         if set(values) != set(PIPER_FEATURES):
             raise ValueError(
@@ -210,7 +237,7 @@ class PiperRobot(Robot):
 
     @check_if_not_connected
     def get_observation(self) -> RobotObservation:
-        observation: RobotObservation = self._read_arm_state()
+        observation: RobotObservation = self._read_arm_state_with_recovery()
         for name, camera in self.cameras.items():
             observation[name] = camera.read_latest()
             if getattr(camera, "use_depth", False):

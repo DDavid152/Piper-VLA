@@ -1,9 +1,9 @@
 # Upstream source checkouts
 /third_party/
 
-# Local hardware/runtime logs (keep only the empty directory marker)
+# Local hardware/runtime logs (keep only the directory documentation)
 /logs/*
-!/logs/.gitkeep
+!/logs/README.md
 /Log/
 
 # Local datasets, recordings, models, and training outputs

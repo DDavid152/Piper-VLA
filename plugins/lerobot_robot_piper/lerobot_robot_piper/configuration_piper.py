@@ -17,6 +17,8 @@ class PiperRobotConfig(RobotConfig):
     cameras: dict[str, CameraConfig] = field(default_factory=dict)
     connect_timeout_s: float = 3.0
     max_state_age_s: float = 0.25
+    state_recovery_timeout_s: float = 1.0
+    state_retry_interval_s: float = 0.01
     min_feedback_hz: float = 20.0
     reject_all_zero_state: bool = True
     max_abs_joint_degrees: float = 360.0
@@ -35,6 +37,15 @@ class PiperRobotConfig(RobotConfig):
             raise ValueError("`connect_timeout_s` must be positive.")
         if self.max_state_age_s <= 0:
             raise ValueError("`max_state_age_s` must be positive.")
+        if self.state_recovery_timeout_s <= 0:
+            raise ValueError("`state_recovery_timeout_s` must be positive.")
+        if self.state_retry_interval_s <= 0:
+            raise ValueError("`state_retry_interval_s` must be positive.")
+        if self.state_retry_interval_s >= self.state_recovery_timeout_s:
+            raise ValueError(
+                "`state_retry_interval_s` must be shorter than "
+                "`state_recovery_timeout_s`."
+            )
         if self.min_feedback_hz <= 0:
             raise ValueError("`min_feedback_hz` must be positive.")
         if self.max_abs_joint_degrees <= 0:

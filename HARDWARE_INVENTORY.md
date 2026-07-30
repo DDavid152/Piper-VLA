@@ -3,6 +3,10 @@
 本文件记录新 Ubuntu 主机上的只读硬件审计结果，不沿用旧电脑的设备枚举、
 序列号或固件结论。
 
+本文提到的历史 `logs/...` 证据已于 2026-07-30 按原相对路径移到本机归档
+`/home/ubuntu22/Piper-VLA-local-archive/2026-07-30/`，不再位于项目目录。
+归档完整性见其中的 `MANIFEST.sha256`。
+
 ## 软件配置阶段结果
 
 2026-07-28 使用 pyorbbecsdk2 2.0.18 仅调用设备枚举接口，检测到
@@ -68,7 +72,7 @@ MasterSlaveConfig(0xFA, 0x00, 0x00, 0x00)
 反馈立即停止，随后 5 秒接收 0 帧，说明机械臂已退出原来的 slave/常规反馈
 状态，但尚未观察到 master 控制帧。
 
-原始日志：`logs/master_role_config_20260729_120425.log`。
+归档原始日志：`logs/master_role_config_20260729_120425.log`。
 
 master 断电重启后，于 2026-07-29 再次完成 5 秒纯监听：
 
@@ -83,8 +87,8 @@ Piper 官方双臂流程要求两臂共享 CAN，并按 follower 先上电、mas
 顺序启动。因此，单独 master 的零报文结果不能判定角色配置失败；下一步应
 在现场安全确认和用户明确授权后，按官方接线合并总线并先做被动报文验收。
 
-原始空抓包：`logs/candump-2026-07-29_121237.log`。
-验收摘要：`logs/master_powercycle_passive_20260729_121237_summary.log`。
+归档空抓包：`logs/candump-2026-07-29_121237.log`。
+归档验收摘要：`logs/master_powercycle_passive_20260729_121237_summary.log`。
 
 两臂随后按官方接线共享 CAN，用户报告先上电 follower、再上电 master。
 2026-07-29 使用序列号 `002900225547571120343930` 的单个 USB-CAN 完成
@@ -104,8 +108,8 @@ master 控制帧证据。随后用户实际拖动 master，确认 follower 已�
 因此主从角色、共享 CAN 和官方上电顺序的实机功能验证通过。静止抓包不能
 代表动态控制期间的报文分布。
 
-原始抓包：`logs/candump-2026-07-29_140502.log`。
-验收摘要：`logs/shared_can_passive_20260729_140502_summary.log`。
+归档原始抓包：`logs/candump-2026-07-29_140502.log`。
+归档验收摘要：`logs/shared_can_passive_20260729_140502_summary.log`。
 
 用户报告遥操正常后，在两臂保持静止时又完成约 8 秒纯监听：
 
@@ -118,8 +122,8 @@ master 控制帧证据。随后用户实际拖动 master，确认 follower 已�
 该静止抓包随后由动态抓包解释：master 控制帧只集中出现在示教输入变化的
 短时间窗口，静止时不持续发送。
 
-原始抓包：`logs/candump-2026-07-29_141134.log`。
-验收摘要：`logs/teleop_static_passive_20260729_141134_summary.log`。
+归档原始抓包：`logs/candump-2026-07-29_141134.log`。
+归档验收摘要：`logs/teleop_static_passive_20260729_141134_summary.log`。
 
 最后在用户执行小幅腕部动作并回位时完成约 120 秒动态纯监听：
 
@@ -138,8 +142,8 @@ master 控制帧证据。随后用户实际拖动 master，确认 follower 已�
 
 双 Piper 官方原生 master/follower 遥操至此通过实机与协议双重验收。
 
-原始抓包：`logs/candump-2026-07-29_141558.log`。
-验收摘要：`logs/teleop_dynamic_passive_20260729_141558_summary.log`。
+归档原始抓包：`logs/candump-2026-07-29_141558.log`。
+归档验收摘要：`logs/teleop_dynamic_passive_20260729_141558_summary.log`。
 
 ### Orbbec 相机
 
@@ -162,7 +166,7 @@ master 控制帧证据。随后用户实际拖动 master，确认 follower 已�
   错误项仍全部为 0；
 - 保存的 RGB 快照证明两路均能产生有效非黑图像。
 
-原始结果：
+归档原始结果：
 
 - `logs/orbbec_dual_rgb_20260729_144204.json`
 - `logs/orbbec_dual_rgb_20260729_144204_snapshots/front_rgb.png`
@@ -180,7 +184,7 @@ master 控制帧证据。随后用户实际拖动 master，确认 follower 已�
   尖端；正式任务必须位于两路视野重叠区，由 `front` 补充直接接触过程；
 - 当前构图与该固定结构限制一并验收，不对图像做软件旋转或伪造。
 
-安装后原始结果：
+安装后归档结果：
 
 - `logs/orbbec_post_mount_rgb_20260729_161521.json`
 - `logs/orbbec_post_mount_rgb_20260729_161521_snapshots/front_rgb.png`
@@ -190,6 +194,4 @@ master 控制帧证据。随后用户实际拖动 master，确认 follower 已�
 ## 待核实
 
 - 两台 Piper 的固件和夹爪配置；
-- 急停与工作空间安全状态；
-- 下一轮安全确认后，使用共享 CAN 对网页 7 维状态/动作显示做一次实机
-  联合验收。
+- 每次实机运行前的急停与工作空间安全确认。

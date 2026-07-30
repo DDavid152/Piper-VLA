@@ -107,6 +107,25 @@ class FakePiperInterface:
         return self.gripper
 
 
+class RecoveringPiperInterface(FakePiperInterface):
+    def __init__(self) -> None:
+        super().__init__()
+        stale = time.time() - 1.0
+        self.status.time_stamp = stale
+        self.joints.time_stamp = stale
+        self.gripper.time_stamp = stale
+        self.status_reads = 0
+
+    def GetArmStatus(self):
+        self.status_reads += 1
+        if self.status_reads == 2:
+            fresh = time.time()
+            self.status.time_stamp = fresh
+            self.joints.time_stamp = fresh
+            self.gripper.time_stamp = fresh
+        return self.status
+
+
 class PiperPluginTest(unittest.TestCase):
     def test_recording_template_decodes_into_third_party_configs(self) -> None:
         register_third_party_plugins()
@@ -120,6 +139,54 @@ class PiperPluginTest(unittest.TestCase):
         self.assertIsInstance(config.teleop, PiperMasterTeleoperatorConfig)
         self.assertEqual(sorted(config.robot.cameras), ["front", "wrist"])
         self.assertEqual(config.robot.control_chain, "native_master_slave")
+
+    def test_purple_bag_trial_config_is_decision_complete(self) -> None:
+        register_third_party_plugins()
+        trial_config = (
+            Path(__file__).resolve().parents[1]
+            / "config"
+            / "record_piper_purple_bag_lift_trial_v1.yaml"
+        )
+        config = draccus.parse(RecordConfig, config_path=trial_config, args=[])
+        self.assertEqual(
+            config.dataset.repo_id,
+            "local/piper_purple_bag_two_handle_lift_trial_v1",
+        )
+        self.assertEqual(config.dataset.fps, 30)
+        self.assertEqual(config.dataset.episode_time_s, 20)
+        self.assertEqual(config.dataset.num_episodes, 1)
+        self.assertFalse(config.dataset.push_to_hub)
+        self.assertFalse(config.resume)
+        self.assertEqual(sorted(config.robot.cameras), ["front", "wrist"])
+        self.assertEqual(config.robot.max_state_age_s, 0.25)
+        self.assertEqual(config.robot.state_recovery_timeout_s, 1.0)
+        self.assertEqual(config.dataset.rgb_encoder.vcodec, "h264")
+        self.assertEqual(config.dataset.rgb_encoder.preset, "ultrafast")
+        self.assertEqual(config.dataset.encoder_queue_maxsize, 60)
+        self.assertNotIn("REPLACE_WITH", config.dataset.single_task)
+
+    def test_purple_bag_manual_config_is_unlimited_and_operator_delimited(self) -> None:
+        register_third_party_plugins()
+        manual_config = (
+            Path(__file__).resolve().parents[1]
+            / "config"
+            / "record_piper_purple_bag_lift_manual_v1.yaml"
+        )
+        config = draccus.parse(RecordConfig, config_path=manual_config, args=[])
+        self.assertEqual(
+            config.dataset.repo_id,
+            "local/piper_purple_bag_two_handle_lift_manual_v1",
+        )
+        self.assertTrue(config.manual_episode_control)
+        self.assertEqual(config.dataset.num_episodes, 0)
+        self.assertEqual(config.dataset.fps, 30)
+        self.assertFalse(config.dataset.push_to_hub)
+        self.assertFalse(config.resume)
+        self.assertEqual(sorted(config.robot.cameras), ["front", "wrist"])
+        self.assertEqual(config.dataset.rgb_encoder.vcodec, "h264")
+        self.assertEqual(config.dataset.rgb_encoder.preset, "ultrafast")
+        self.assertEqual(config.dataset.encoder_queue_maxsize, 60)
+        self.assertNotIn("REPLACE_WITH", config.dataset.single_task)
 
     def test_plugins_register_and_factories_instantiate_without_hardware(self) -> None:
         robot_config = PiperRobotConfig()
@@ -160,12 +227,30 @@ class PiperPluginTest(unittest.TestCase):
         )
 
     def test_robot_rejects_stale_feedback(self) -> None:
-        robot = PiperRobot(PiperRobotConfig())
+        robot = PiperRobot(
+            PiperRobotConfig(
+                state_recovery_timeout_s=0.03,
+                state_retry_interval_s=0.005,
+            )
+        )
         interface = FakePiperInterface()
         interface.joints.time_stamp = time.time() - 1.0
         robot._interface = interface
-        with self.assertRaisesRegex(TimeoutError, "joint feedback"):
+        with self.assertRaisesRegex(TimeoutError, "did not recover"):
             robot.get_observation()
+
+    def test_robot_recovers_only_after_fresh_feedback_arrives(self) -> None:
+        robot = PiperRobot(
+            PiperRobotConfig(
+                state_recovery_timeout_s=0.1,
+                state_retry_interval_s=0.005,
+            )
+        )
+        interface = RecoveringPiperInterface()
+        robot._interface = interface
+        observation = robot.get_observation()
+        self.assertGreaterEqual(interface.status_reads, 2)
+        self.assertEqual(observation["joint_1.pos"], 1.0)
 
     def test_teleoperator_uses_follower_feedback_before_master_target(self) -> None:
         teleop = PiperMasterTeleoperator(PiperMasterTeleoperatorConfig())

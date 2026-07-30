@@ -114,9 +114,12 @@ PyPI。
   未发现 CAN 发送、使能、回零或运动控制调用；
 - 训练数据网页的双相机实机模式、单相机模式和 CAN 不可用降级模式通过；
 - 双相机网页测试期间相机持续出帧、CAN 保持 DOWN、TX 计数保持 0；
-- 共享 CAN 上的关节数据网页实机验收需在下一次现场安全确认后完成。
+- 共享 CAN 联合验收真实读取两路图像、7 维 follower observation 和 7 维
+  master action，机械臂数据约 30 FPS、CAN 错误为 0、主机 TX 增量为 0。
 
-原始日志：
+历史验收产物不再存放在项目 `logs/`。以下文件已按原相对路径归档到
+`/home/ubuntu22/Piper-VLA-local-archive/2026-07-30/`，完整性由归档内
+`MANIFEST.sha256` 记录：
 
 - `logs/software_setup_20260728_155401.log`
 - `logs/system_dependencies_20260728_163755.log`
@@ -129,5 +132,5 @@ PyPI。
 - `logs/dataset_dashboard_20260729_summary.log`
 - `logs/environment_verify_20260729_172421.log`
 
-安装日志保留了 TorchCodec 在缺少 FFmpeg 7 运行库时的首次失败，以及安装
-Conda FFmpeg 7 和激活钩子后的成功复验，便于追溯。
+归档中的安装日志保留了 TorchCodec 在缺少 FFmpeg 7 运行库时的首次失败，
+以及安装 Conda FFmpeg 7 和激活钩子后的成功复验，便于追溯。
