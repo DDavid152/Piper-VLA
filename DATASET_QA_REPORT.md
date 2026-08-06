@@ -1,64 +1,49 @@
 # 数据集质量报告
 
-当前状态：手动数据集已有 3 条 episode。批量自动 QA 于 2026-07-30
-完成，机器可读报告为 `logs/piper_manual_batch_qa.json`。
+## 正式训练数据集
 
-## 最新批量自动 QA
+截至 2026-08-06，SmolVLA 与 ACT 使用同一个 clean 数据集，保证模型对比不受
+样本差异影响。
 
-| episode | 数据行数 | front 区间 | wrist 区间 | 自动结论 |
-|---|---:|---:|---:|---|
-| 0 | 786 | 786 | 783 | 不通过：wrist 少 3 帧 |
-| 1 | 561 | 559 | 561 | 不通过：front 少 2 帧 |
-| 2 | 856 | 856 | 856 | 通过 |
+| 项目 | 当前值 |
+|---|---|
+| repo_id | `local/piper_purple_bag_two_handle_lift_manual_v1_clean` |
+| 本地目录 | `datasets/piper_purple_bag_two_handle_lift_manual_v1_clean` |
+| episode / 总帧数 | 51 / 42,066 |
+| FPS | 30 |
+| 图像 | `front`、`wrist`，RGB 640×480 |
+| 向量 | 7 维 `observation.state`、7 维 `action` |
+| 自动 QA | 51 通过 / 0 失败 |
+| 报告 | `logs/piper_manual_v1_clean_batch_qa.json` |
 
-episode 0、1 是流式编码器旧的“队列满后静默丢帧”行为产生的，不能直接
-用于训练；修复没有修改原始数据。episode 2 仍需完成人工动作语义检查。
+原始目录 `datasets/piper_purple_bag_two_handle_lift_manual_v1` 有 52 条，包含一条
+已排除的失败样本，只用于保留采集历史，不能直接训练或生成安全基线。
 
-以后每次采集结束执行：
+## 复验
 
 ```bash
+source /home/ubuntu22/miniforge3/etc/profile.d/conda.sh
+conda activate lerobot
+cd /home/ubuntu22/Piper-VLA
+
 python scripts/verify_piper_dataset.py \
-  --output logs/piper_manual_batch_qa.json
+  --repo-id local/piper_purple_bag_two_handle_lift_manual_v1_clean \
+  --root datasets/piper_purple_bag_two_handle_lift_manual_v1_clean \
+  --output logs/piper_manual_v1_clean_batch_qa.json
 ```
 
-下方保留人工验收记录模板。
+自动 QA 覆盖 episode/帧/task 索引、共享 MP4 解码、视频和 Parquet 行数、
+30 FPS 时序以及 7 维向量有限性。它不能判断动作语义；仍需人工确认每条示教
+都夹住两根提带、提离约 10 厘米、悬停约 2 秒、放回、松开并退离。
 
-## 试采信息
+## 新增数据准入
 
-```text
-日期时间：
-数据集 repo_id：
-本地 root：
-task：
-episode 数量与时长：
-操作人员：
-```
+- 创建新版本，不原地修改 v1 clean。
+- 两路画面清晰，关键操作同时处于可观察区域。
+- task 文本完全一致，状态/action 单位与现有数据相同。
+- 自动 QA 全通过，再逐条做人工语义验收。
+- 排除失败 episode 后重新生成安全基线，再分别训练两个模型。
+- 模型对比必须使用相同的数据版本、相机摆放和实机任务条件。
 
-## 自动检查
-
-| 项目 | 期望 | 实际 | 结论 |
-|---|---|---|---|
-| 数据集 FPS | 30 | 待填写 | 待检查 |
-| front 视频 | 可完整解码 | 待填写 | 待检查 |
-| wrist 视频 | 可完整解码 | 待填写 | 待检查 |
-| observation.state | 7 维、有限值 | 待填写 | 待检查 |
-| action | 7 维、有限值 | 待填写 | 待检查 |
-| timestamp | 单调、无明显间断 | 待填写 | 待检查 |
-| task | 与示教完全一致 | 待填写 | 待检查 |
-| 主机 CAN TX | 增量 0 | 待填写 | 待检查 |
-
-## 人工检查
-
-- [ ] 两路视角均清晰、方向正确、无冻结或无关人员。
-- [ ] 关键操作位于 front 与 wrist 的重叠视野内。
-- [ ] master action 随示教变化，follower observation 合理跟随。
-- [ ] 失败示教已明确标记，不混入成功数据。
-- [ ] `lerobot-dataset-viz` 可打开 episode。
-
-## 结论
-
-```text
-通过 / 不通过：
-需要重录的 episode：
-问题与后续处理：
-```
+早期 3 条试采曾暴露视频编码队列丢帧，现行批量 QA 已覆盖该故障。历史报告
+仅用于追溯，不代表正式数据质量。

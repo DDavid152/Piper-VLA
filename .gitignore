@@ -6,7 +6,8 @@
 !/logs/README.md
 /Log/
 
-# Local datasets, recordings, models, and training outputs
+# Local datasets, recordings, models, and training outputs.
+# ACT/SmolVLA checkpoints stay on this machine and must never enter Git.
 /data/
 /datasets/
 /recordings/
@@ -19,6 +20,12 @@
 /runs/
 /wandb/
 /mlruns/
+**/checkpoints/
+*.safetensors
+optimizer_state.*
+rng_state.*
+scheduler_state.*
+training_step.*
 
 # Download and tool caches
 /.cache/

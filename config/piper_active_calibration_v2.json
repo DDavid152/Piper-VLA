@@ -1,0 +1,121 @@
+{
+  "schema_version": 2,
+  "calibration_version": 2,
+  "verified": true,
+  "units": {
+    "joint_input": "degree",
+    "joint_sdk": "0.001_degree",
+    "gripper_input": "millimeter",
+    "gripper_sdk": "0.001_millimeter"
+  },
+  "adapter": {
+    "interface": "can0",
+    "serial": "002900225547571120343930"
+  },
+  "sdk_physical_limits": {
+    "joint_min_degrees": [
+      -150.0,
+      0.0,
+      -170.0,
+      -100.0,
+      -70.0,
+      -120.0
+    ],
+    "joint_max_degrees": [
+      150.0,
+      180.0,
+      0.0,
+      100.0,
+      70.0,
+      120.0
+    ],
+    "gripper_min_mm": 0.0,
+    "gripper_max_mm": 70.0
+  },
+  "joints": [
+    {
+      "name": "joint_1.pos",
+      "scale": 1.0,
+      "offset_degrees": 0.0
+    },
+    {
+      "name": "joint_2.pos",
+      "scale": 1.0,
+      "offset_degrees": 0.0
+    },
+    {
+      "name": "joint_3.pos",
+      "scale": 1.0,
+      "offset_degrees": 0.0
+    },
+    {
+      "name": "joint_4.pos",
+      "scale": 1.0,
+      "offset_degrees": 0.0
+    },
+    {
+      "name": "joint_5.pos",
+      "scale": 1.0,
+      "offset_degrees": 0.0
+    },
+    {
+      "name": "joint_6.pos",
+      "scale": 1.0,
+      "offset_degrees": 0.0
+    }
+  ],
+  "gripper_points": [
+    {
+      "input_mm": -5.0,
+      "output_mm": 0.0
+    },
+    {
+      "input_mm": 70.0,
+      "output_mm": 70.0
+    },
+    {
+      "input_mm": 120.0,
+      "output_mm": 70.0
+    }
+  ],
+  "verification": {
+    "generator": "lerobot_robot_piper_active.calibration",
+    "generated_at_utc": "2026-08-04T09:11:18.337133+00:00",
+    "operator": "hdw",
+    "passive_sample_count": 31,
+    "commissioning_test_count": 12,
+    "thresholds": {
+      "joint_protocol_scale_tolerance": 0.02,
+      "joint_protocol_offset_max_degrees": 1.0,
+      "joint_tracking_max_error_degrees": 2.0,
+      "gripper_tracking_max_error_mm": 1.0,
+      "commissioning_delta_degrees": 0.5,
+      "commissioning_max_error_degrees": 0.25
+    },
+    "mapping_basis": {
+      "joints": "Piper 0x155/0x156/0x157 and JointCtrl identity units",
+      "gripper": "Piper 0x159/GripperCtrl identity units clamped to 0-70 mm"
+    },
+    "passive_tracking": {
+      "joint_max_errors_degrees": [
+        0.433,
+        0.491,
+        0.77,
+        0.749,
+        1.516,
+        0.44
+      ],
+      "gripper_max_error_mm": 0.5
+    },
+    "evidence": {
+      "passive_mapping": {
+        "path": "/home/ubuntu22/Piper-VLA/logs/piper_calibration/passive_mapping.jsonl",
+        "sha256": "ef0387bc91899695d1a818d069f43badca3212cce0f2062763913abc215e1b98"
+      },
+      "commissioning": {
+        "path": "/home/ubuntu22/Piper-VLA/logs/piper_calibration/commissioning.jsonl",
+        "sha256": "72c48fa6581e973472c80270ef4310a08722b713107f3672daa8f31efc590aba"
+      }
+    }
+  }
+}

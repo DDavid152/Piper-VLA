@@ -24,6 +24,8 @@ class PiperRobotConfig(RobotConfig):
     max_abs_joint_degrees: float = 360.0
     gripper_min_mm: float = -5.0
     gripper_max_mm: float = 120.0
+    passive_action_log_path: str = ""
+    passive_action_log_flush_every: int = 30
 
     def __post_init__(self) -> None:
         super().__post_init__()
@@ -52,3 +54,5 @@ class PiperRobotConfig(RobotConfig):
             raise ValueError("`max_abs_joint_degrees` must be positive.")
         if self.gripper_min_mm >= self.gripper_max_mm:
             raise ValueError("The gripper range is invalid.")
+        if self.passive_action_log_flush_every <= 0:
+            raise ValueError("`passive_action_log_flush_every` must be positive.")

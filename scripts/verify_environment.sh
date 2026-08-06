@@ -35,6 +35,7 @@ modules = [
     "pyorbbecsdk",
     "lerobot_camera_orbbec",
     "lerobot_robot_piper",
+    "lerobot_robot_piper_active",
     "lerobot_teleoperator_piper",
 ]
 
@@ -79,6 +80,7 @@ from lerobot.utils.import_utils import register_third_party_plugins
 
 register_third_party_plugins()
 assert RobotConfig.get_choice_class("piper")().type == "piper"
+assert RobotConfig.get_choice_class("piper_active")().type == "piper_active"
 assert TeleoperatorConfig.get_choice_class("piper_master")().type == "piper_master"
 config = draccus.parse(
     RecordConfig,
@@ -88,7 +90,9 @@ config = draccus.parse(
     args=[],
 )
 assert sorted(config.robot.cameras) == ["front", "wrist"]
-print("Piper/Orbbec plugin discovery and recording-template decode passed.")
+active = RobotConfig.get_choice_class("piper_active")()
+assert active.motion_enabled is False
+print("Piper/Orbbec plugin discovery, active-default lock, and template decode passed.")
 PY
 
 if rg -n \
@@ -100,6 +104,31 @@ if rg -n \
   exit 1
 fi
 echo "Piper plugin receive-only source check passed."
+
+python - <<'PY'
+import ast
+from pathlib import Path
+
+path = Path(
+    "/home/ubuntu22/Piper-VLA/plugins/lerobot_robot_piper_active/"
+    "lerobot_robot_piper_active/robot_piper_active.py"
+)
+tree = ast.parse(path.read_text(encoding="utf-8"))
+calls = {
+    node.func.attr
+    for node in ast.walk(tree)
+    if isinstance(node, ast.Call)
+    and isinstance(node.func, ast.Attribute)
+    and isinstance(node.func.value, ast.Attribute)
+    and node.func.value.attr == "_interface"
+}
+allowed = {"EnableArm", "MotionCtrl_2", "JointCtrl", "GripperCtrl", "EmergencyStop"}
+assert calls == allowed, (calls, allowed)
+source = path.read_text(encoding="utf-8")
+for forbidden in ("ResetPiper(", "MasterSlaveConfig(", "SetInstructionResponse(", ".send("):
+    assert forbidden not in source, forbidden
+print("piper_active SDK-call allowlist check passed.")
+PY
 
 python -m unittest discover -s "${PROJECT_ROOT}/tests" -v
 

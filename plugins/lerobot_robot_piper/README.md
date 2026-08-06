@@ -52,7 +52,9 @@ PiperRobotConfig
   等待 SDK 恢复并只返回重新通过年龄校验的新鲜状态；
 - `_validate_values()`：检查特征集合、有限数值和安全范围；
 - `get_observation()`：组合 follower 状态及相机图像；
-- `send_action()`：仅验证并原样返回 action，不发送 CAN；
+- `send_action()`：默认仅验证并原样返回 action；启用
+  `passive_action_log_path` 时记录每个完整预测动作、对应状态、相邻差值和
+  观测年龄，用于全动作影子 QA；两种模式都不发送 CAN；
 - `disconnect()`：关闭相机和 SDK 接收线程。
 
 `calibrate()` 和 `configure()` 是明确的非运动操作，不执行软件校准、使能、
@@ -66,6 +68,8 @@ PiperRobotConfig
 - 单帧最大年龄仍由 `max_state_age_s` 严格限制；瞬时恢复机制不会返回旧帧，
   持续超过 `state_recovery_timeout_s` 无新鲜反馈时仍停止录制；
 - 本插件不实现主动控制。增加主动模式必须另行安全评审。
+- 影子审计允许记录正确 schema 的有限越界预测，以便 QA 完整统计危险输出；
+  这不会放宽录制校验，也不会把越界动作发送给机械臂。
 
 ## 验证
 

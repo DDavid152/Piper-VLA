@@ -24,6 +24,10 @@ python -m pip freeze --all --exclude pip \
         print "-e ../plugins/lerobot_robot_piper"
         next
       }
+      /#egg=lerobot_robot_piper_active&subdirectory=plugins\/lerobot_robot_piper_active$/ {
+        print "-e ../plugins/lerobot_robot_piper_active"
+        next
+      }
       /#egg=lerobot_teleoperator_piper&subdirectory=plugins\/lerobot_teleoperator_piper$/ {
         print "-e ../plugins/lerobot_teleoperator_piper"
         next

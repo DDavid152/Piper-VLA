@@ -11,7 +11,7 @@
 | `constraints.txt` | Torch、TorchCodec、PyAV、Piper、CAN、Orbbec 关键版本 |
 | `conda-explicit-linux-64.txt` | 当前 Linux x86_64 Conda 包的精确 URL |
 | `environment.resolved.yml` | 不含 build 字段的完整 Conda/Pip 解析结果 |
-| `requirements.lock.txt` | 完整 Pip 版本及三个本地 editable 插件路径 |
+| `requirements.lock.txt` | 完整 Pip 版本及四个本地 editable 插件路径 |
 | `pip-inspect.json` | Pip 元数据、依赖关系和安装来源审计 |
 | `activate.d/piper-vla.sh` | 激活时将 Conda FFmpeg 运行库置于搜索路径前部 |
 | `deactivate.d/piper-vla.sh` | 退出环境时恢复原 `LD_LIBRARY_PATH` |

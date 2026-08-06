@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "verified": false,
+  "units": {
+    "joint_input": "degree",
+    "joint_sdk": "0.001_degree",
+    "gripper_input": "millimeter",
+    "gripper_sdk": "0.001_millimeter"
+  },
+  "adapter": {
+    "interface": "can0",
+    "serial": "002900225547571120343930"
+  },
+  "joints": [
+    {"name": "joint_1.pos", "scale": 1.0, "offset_degrees": 0.0},
+    {"name": "joint_2.pos", "scale": 1.0, "offset_degrees": 0.0},
+    {"name": "joint_3.pos", "scale": 1.0, "offset_degrees": 0.0},
+    {"name": "joint_4.pos", "scale": 1.0, "offset_degrees": 0.0},
+    {"name": "joint_5.pos", "scale": 1.0, "offset_degrees": 0.0},
+    {"name": "joint_6.pos", "scale": 1.0, "offset_degrees": 0.0}
+  ],
+  "gripper_points": [
+    {"input_mm": -0.5, "output_mm": 0.0},
+    {"input_mm": 50.0, "output_mm": 35.0},
+    {"input_mm": 105.4, "output_mm": 70.0}
+  ],
+  "verification": {
+    "performed_at": null,
+    "operator": null,
+    "notes": "Skeleton only. Real motion is prohibited until physical calibration is completed and independently verified."
+  }
+}

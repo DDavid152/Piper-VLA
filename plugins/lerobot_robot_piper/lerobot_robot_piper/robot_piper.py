@@ -1,9 +1,11 @@
+import json
 import logging
 import math
 import time
+from datetime import datetime, timezone
 from functools import cached_property
 from pathlib import Path
-from typing import Any
+from typing import Any, TextIO
 
 from lerobot.cameras import make_cameras_from_configs
 from lerobot.robots import Robot
@@ -51,6 +53,12 @@ class PiperRobot(Robot):
         self.config = config
         self.cameras = make_cameras_from_configs(config.cameras)
         self._interface: Any | None = None
+        self._validated_action_count = 0
+        self._last_observation_state: dict[str, float] | None = None
+        self._last_observation_monotonic: float | None = None
+        self._last_validated_action: dict[str, float] | None = None
+        self._passive_action_log: TextIO | None = None
+        self._passive_envelope_warning_count = 0
 
     @cached_property
     def observation_features(self) -> dict[str, type | tuple]:
@@ -90,12 +98,27 @@ class PiperRobot(Robot):
                 f"expected shared-bus adapter {self.config.expected_adapter_serial!r}."
             )
 
+    def _open_passive_action_log(self) -> None:
+        if not self.config.passive_action_log_path or self._passive_action_log is not None:
+            return
+        path = Path(self.config.passive_action_log_path).expanduser().resolve()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        self._passive_action_log = path.open("x", encoding="utf-8", buffering=1)
+        logger.info("Passive action audit log: %s", path)
+
+    def _close_passive_action_log(self) -> None:
+        if self._passive_action_log is not None:
+            self._passive_action_log.flush()
+            self._passive_action_log.close()
+            self._passive_action_log = None
+
     @check_if_already_connected
     def connect(self, calibrate: bool = True) -> None:
         del calibrate
         self._validate_adapter_identity()
         connected_cameras = []
         try:
+            self._open_passive_action_log()
             interface = C_PiperInterface_V2(
                 self.config.can_interface,
                 judge_flag=True,
@@ -119,6 +142,7 @@ class PiperRobot(Robot):
             if self._interface is not None and self._interface.get_connect_status():
                 self._interface.DisconnectPort()
             self._interface = None
+            self._close_passive_action_log()
             raise
 
     def _wait_for_valid_feedback(self) -> None:
@@ -238,6 +262,10 @@ class PiperRobot(Robot):
     @check_if_not_connected
     def get_observation(self) -> RobotObservation:
         observation: RobotObservation = self._read_arm_state_with_recovery()
+        self._last_observation_state = {
+            feature: float(observation[feature]) for feature in PIPER_FEATURES
+        }
+        self._last_observation_monotonic = time.monotonic()
         for name, camera in self.cameras.items():
             observation[name] = camera.read_latest()
             if getattr(camera, "use_depth", False):
@@ -248,7 +276,69 @@ class PiperRobot(Robot):
     def send_action(self, action: RobotAction) -> RobotAction:
         """Validate the recorded target without transmitting it to the follower."""
         validated = {key: float(value) for key, value in action.items()}
-        self._validate_values(validated, source="action")
+        envelope_warning = None
+        try:
+            self._validate_values(validated, source="action")
+        except (RuntimeError, ValueError) as exc:
+            if not self.config.passive_action_log_path:
+                raise
+            if set(validated) != set(PIPER_FEATURES) or not all(
+                math.isfinite(value) for value in validated.values()
+            ):
+                raise
+            envelope_warning = str(exc)
+            self._passive_envelope_warning_count += 1
+            if (
+                self._passive_envelope_warning_count == 1
+                or self._passive_envelope_warning_count % 30 == 0
+            ):
+                logger.warning(
+                    "Passive audit recorded broad-envelope violation %d without sending it: %s",
+                    self._passive_envelope_warning_count,
+                    exc,
+                )
+        now_monotonic = time.monotonic()
+        if self._last_observation_state is None:
+            self._last_observation_state = self._read_arm_state_with_recovery()
+            self._last_observation_monotonic = time.monotonic()
+            now_monotonic = time.monotonic()
+        delta = None
+        if self._last_validated_action is not None:
+            delta = [
+                validated[feature] - self._last_validated_action[feature]
+                for feature in PIPER_FEATURES
+            ]
+        self._open_passive_action_log()
+        if self._passive_action_log is not None:
+            record = {
+                "schema_version": 1,
+                "sequence": self._validated_action_count,
+                "wall_time_utc": datetime.now(timezone.utc).isoformat(),
+                "monotonic_time_s": now_monotonic,
+                "state": [self._last_observation_state[key] for key in PIPER_FEATURES],
+                "raw_action": [validated[key] for key in PIPER_FEATURES],
+                "action_delta": delta,
+                "observation_age_s": (
+                    now_monotonic - self._last_observation_monotonic
+                    if self._last_observation_monotonic is not None
+                    else None
+                ),
+                "plugin_envelope_warning": envelope_warning,
+            }
+            self._passive_action_log.write(
+                json.dumps(record, ensure_ascii=False, allow_nan=False) + "\n"
+            )
+            if (
+                self._validated_action_count + 1
+            ) % self.config.passive_action_log_flush_every == 0:
+                self._passive_action_log.flush()
+        self._last_validated_action = validated.copy()
+        self._validated_action_count += 1
+        if self._validated_action_count == 1:
+            logger.info(
+                "Recorded first passive policy action (no CAN transmission): %s",
+                validated,
+            )
         return validated
 
     @check_if_not_connected
@@ -259,4 +349,15 @@ class PiperRobot(Robot):
         if self._interface is not None and self._interface.get_connect_status():
             self._interface.DisconnectPort()
         self._interface = None
-        logger.info("%s disconnected without issuing a robot command.", self)
+        self._close_passive_action_log()
+        if self.name == "piper":
+            logger.info(
+                "%s disconnected after validating %d passive action(s) without issuing a robot command.",
+                self,
+                self._validated_action_count,
+            )
+        else:
+            # Active adapters reuse this class only for feedback, cameras, and
+            # resource cleanup. Their subclass logger owns the authoritative
+            # action/stop summary; calling those actions "passive" here is false.
+            logger.info("%s feedback and camera resources disconnected.", self)

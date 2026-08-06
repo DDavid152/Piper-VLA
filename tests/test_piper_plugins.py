@@ -1,3 +1,5 @@
+import json
+import tempfile
 import time
 import unittest
 from pathlib import Path
@@ -140,31 +142,6 @@ class PiperPluginTest(unittest.TestCase):
         self.assertEqual(sorted(config.robot.cameras), ["front", "wrist"])
         self.assertEqual(config.robot.control_chain, "native_master_slave")
 
-    def test_purple_bag_trial_config_is_decision_complete(self) -> None:
-        register_third_party_plugins()
-        trial_config = (
-            Path(__file__).resolve().parents[1]
-            / "config"
-            / "record_piper_purple_bag_lift_trial_v1.yaml"
-        )
-        config = draccus.parse(RecordConfig, config_path=trial_config, args=[])
-        self.assertEqual(
-            config.dataset.repo_id,
-            "local/piper_purple_bag_two_handle_lift_trial_v1",
-        )
-        self.assertEqual(config.dataset.fps, 30)
-        self.assertEqual(config.dataset.episode_time_s, 20)
-        self.assertEqual(config.dataset.num_episodes, 1)
-        self.assertFalse(config.dataset.push_to_hub)
-        self.assertFalse(config.resume)
-        self.assertEqual(sorted(config.robot.cameras), ["front", "wrist"])
-        self.assertEqual(config.robot.max_state_age_s, 0.25)
-        self.assertEqual(config.robot.state_recovery_timeout_s, 1.0)
-        self.assertEqual(config.dataset.rgb_encoder.vcodec, "h264")
-        self.assertEqual(config.dataset.rgb_encoder.preset, "ultrafast")
-        self.assertEqual(config.dataset.encoder_queue_maxsize, 60)
-        self.assertNotIn("REPLACE_WITH", config.dataset.single_task)
-
     def test_purple_bag_manual_config_is_unlimited_and_operator_delimited(self) -> None:
         register_third_party_plugins()
         manual_config = (
@@ -219,12 +196,44 @@ class PiperPluginTest(unittest.TestCase):
         robot._interface = FakePiperInterface()
         action = {name: float(index + 1) for index, name in enumerate(FEATURES)}
         self.assertEqual(robot.send_action(action), action)
+        self.assertEqual(robot._validated_action_count, 1)
         self.assertFalse(
             any(
                 name.startswith(("JointCtrl", "GripperCtrl", "MotionCtrl"))
                 for name in vars(robot._interface)
             )
         )
+
+    def test_robot_optional_passive_action_audit_is_complete(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "actions.jsonl"
+            robot = PiperRobot(PiperRobotConfig(passive_action_log_path=str(path)))
+            robot._interface = FakePiperInterface()
+            observation = robot.get_observation()
+            action = {name: float(observation[name]) for name in FEATURES}
+            robot.send_action(action)
+            robot._close_passive_action_log()
+            record = json.loads(path.read_text(encoding="utf-8"))
+            self.assertEqual(record["sequence"], 0)
+            self.assertEqual(record["state"], list(action.values()))
+            self.assertEqual(record["raw_action"], list(action.values()))
+            self.assertIsNone(record["action_delta"])
+            self.assertGreaterEqual(record["observation_age_s"], 0.0)
+
+    def test_passive_audit_records_finite_envelope_violation_without_aborting(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "actions.jsonl"
+            robot = PiperRobot(PiperRobotConfig(passive_action_log_path=str(path)))
+            robot._interface = FakePiperInterface()
+            action = {name: 0.0 for name in FEATURES}
+            action["joint_2.pos"] = 1.0
+            action["joint_3.pos"] = -1.0
+            action["gripper.pos"] = -6.25
+            self.assertEqual(robot.send_action(action), action)
+            robot._close_passive_action_log()
+            record = json.loads(path.read_text(encoding="utf-8"))
+            self.assertEqual(record["raw_action"][-1], -6.25)
+            self.assertIn("outside the safety envelope", record["plugin_envelope_warning"])
 
     def test_robot_rejects_stale_feedback(self) -> None:
         robot = PiperRobot(

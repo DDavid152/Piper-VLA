@@ -1,14 +1,16 @@
 # 测试目录
 
-项目使用 Python 标准库 `unittest`，默认测试不需要连接真实机械臂或相机。
+项目使用 Python `unittest`。默认测试通过 fake SDK/设备运行，不连接真实
+机械臂或相机，也不发送 CAN。
 
 | 文件 | 覆盖范围 |
 |---|---|
-| `test_orbbec_camera_plugin.py` | Camera 注册、配置校验、工厂实例化和旋转尺寸 |
-| `test_piper_plugins.py` | Robot/Teleoperator 注册、单位、反馈健康、CAN 协议解析、只读 action 和 YAML |
-| `test_dataset_dashboard.py` | 训练数据网页字段和模拟的 7 维 observation/action 数据流 |
-
-运行全部测试：
+| `test_orbbec_camera_plugin.py` | Camera 注册、配置与旋转尺寸 |
+| `test_piper_plugins.py` | 被动 Robot/Teleoperator、单位、健康和 CAN 解析 |
+| `test_dataset_dashboard.py` | 网页字段与模拟 7 维数据流 |
+| `test_batch_dataset_qa.py` | 共享 MP4、episode 区间和缺帧检测 |
+| `test_piper_active_plugin.py` | 主动准入、限位/限速、SDK 顺序、预算和看门狗 |
+| `test_piper_calibration_tools.py` | v2 证据发布、commissioning 与急停门禁 |
 
 ```bash
 source /home/ubuntu22/miniforge3/etc/profile.d/conda.sh
@@ -16,6 +18,7 @@ conda activate lerobot
 python -m unittest discover -s tests -v
 ```
 
-测试中的 `FakePiperInterface`、`FakeRobot` 和 `FakeTeleoperator` 不打开 CAN，
-只用于验证数据单位、完整性和错误处理。真实设备性能验收由
-`scripts/verify_orbbec_cameras.py` 和训练数据网页完成。
+2026-08-06 复验：73 项全部通过。
+
+故障注入测试会故意输出 fault/error 日志；最终 `OK` 才表示拦截符合预期。
+真实 FPS、零发送和运动表现必须分别由相机工具、CAN 统计与实机日志验证。

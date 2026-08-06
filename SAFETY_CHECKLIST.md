@@ -1,63 +1,54 @@
-# 实机安全检查表
+# Piper 实机安全清单
 
-本表必须在每次 dashboard、`lerobot-record`、回放或模型推理前重新确认。
-历史测试通过不能替代本轮现场确认。任何一项不满足都应停止，不启动 CAN。
+本清单区分“原生遥操作采集”和“模型主动部署”。两种模式不能同时运行。
 
-## 现场与人员
+## 每次共同检查
 
-- [ ] 操作人员在机械臂旁，可立即断电或触发急停。
-- [ ] 急停可触达且功能已由现场人员确认。
-- [ ] 两臂工作空间内没有人员、线缆、箱体或其他碰撞物。
-- [ ] 台面、目标物和容器固定，任务不会超出安全工作区。
-- [ ] 两台相机固定，画面不包含无关人员或隐私信息。
+- [ ] 操作员熟悉物理急停，已现场测试且全程握在手中。
+- [ ] 工作区无人员、线缆和障碍物，机械臂/夹爪没有明显损伤。
+- [ ] `can0` 为 1 Mbps、`UP`、`ERROR-ACTIVE`，总线错误为 0。
+- [ ] USB-CAN 序列号与本轮角色匹配，两台相机序列号和画面正确。
+- [ ] 任务物体、相机、桌面和机械臂起始条件与数据采集保持一致。
 
-## 设备身份与接线
+## 数据采集模式
 
-- [ ] follower USB-CAN 序列号为 `002900225547571120343930`。
-- [ ] master 诊断适配器序列号为 `0033002F5547571120343930`。
-- [ ] 两臂按 Piper 官方原生 master/follower 方式共享 CAN。
-- [ ] follower 先上电，master 后上电。
-- [ ] `can0` 为经典 CAN 1 Mbps、`ERROR-ACTIVE`，总线错误为 0。
+- [ ] 使用官方 master/follower 共享 CAN；follower 先上电、master 后上电。
+- [ ] 只读 `piper` 与 `piper_master` 插件；主机 CAN TX 不应增长。
+- [ ] `piper_active` 和所有模型 rollout 均未运行。
+- [ ] 录制完成后运行批量自动 QA，再做逐条人工语义验收。
 
-## 固定启动顺序
+## 模型主动部署模式
 
-以下步骤必须按顺序完成，不能先启动 dashboard 或 `lerobot-record` 再准备
-CAN：
+- [ ] master 已断电或与 follower 控制总线物理隔离。
+- [ ] follower 使用适配器 `002900225547571120343930`。
+- [ ] `config/piper_active_calibration_v2.json` 与
+  `config/piper_safety_baseline_v1.json` 存在且来源未被手工篡改。
+- [ ] 当前物理姿态无碰撞风险，双相机反馈新鲜。
+- [ ] 运行脚本的 receive-only current-pose preflight 通过，主机 CAN TX 增量为 0。
+- [ ] 先运行 50 动作；只有检查正常后才运行 30 秒完整任务。
 
-1. [ ] follower 已先上电，并等待约 5 秒至状态稳定。
-2. [ ] master 已后上电，并再次等待约 5 秒。
-3. [ ] 已在电脑上依次执行：
-
-   ```bash
-   sudo ip link set can0 type can bitrate 1000000
-   sudo ip link set can0 up
-   ip -details -statistics link show can0
-   ```
-
-4. [ ] 输出包含 `state UP`、`can state ERROR-ACTIVE` 和
-   `bitrate 1000000`。
-5. [ ] `bus-errors`、`error-warn`、`error-pass`、`bus-off` 均为 0。
-6. [ ] 已确认原生遥操作正常，再启动只读 dashboard 或正式采集。
-
-如果 dashboard 曾在 CAN 启动前运行，或 USB-CAN 运行中重新枚举，必须先在
-其终端按 `Ctrl+C`，然后在 CAN 状态正常后重新启动；现有进程不会自动重连。
-
-## 软件与数据
-
-- [ ] 已激活 `/home/ubuntu22/miniforge3/envs/lerobot`。
-- [ ] 没有其他程序占用两台相机或 CAN 读取器。
-- [ ] task、数据集名称和输出目录已确认，模板不含占位文本。
-- [ ] 数据集输出目录为空或明确选择了 `resume`，不会覆盖已有 episode。
-- [ ] dashboard 联合检查中双路图像和 7 维数据正常、主机 TX 增量为 0。
-- [ ] dashboard 已按 `Ctrl+C` 退出并释放相机，再启动 `lerobot-record`。
-
-## 本轮记录
-
-```text
-日期时间：
-操作人员：
-任务指令：
-数据集目录：
-设备与工作区确认：
-异常或停止原因：
+```bash
+bash scripts/run_piper_act_rollout.sh --profile 50
+bash scripts/run_piper_act_rollout.sh --profile 30s
 ```
+
+SmolVLA 的当前基线入口是 `scripts/run_piper_active_micro.sh`，参数和结论见
+[SMOLVLA_GUIDE.md](SMOLVLA_GUIDE.md)。不要把 SmolVLA 的 RTC/插值参数复制到
+ACT：ACT 当前为 sync、30 FPS、`interpolation_multiplier=1`。
+
+## 运行中与运行后
+
+- [ ] 手始终放在物理急停上；异常运动先按物理急停，再终止程序。
+- [ ] 不在机械臂运动时触碰设备、重新接线或启动第二个控制进程。
+- [ ] 每轮检查日志的停止原因、发送动作数和 `fault`。
+- [ ] 每轮后检查机械臂和物体，执行恢复命令，再人工重新摆放。
+
+```bash
+python scripts/recover_piper_emergency_stop.py
+```
+
+恢复命令只清除符合条件的软件急停，不使能、不回零、不发送关节目标。禁止用
+shell 循环无人值守重复主动运行；每轮都必须重新通过预检和人工确认。
+
+以下任一情况立即停止：CAN 错误或身份不符、相机冻结、反馈不新鲜、标定拒绝、
+异常声音/振动、动作越界、人与障碍物进入工作区，或操作员无法持续控制急停。

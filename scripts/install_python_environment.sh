@@ -82,6 +82,7 @@ readonly CONDA_RUN=("${CONDA_ROOT}/bin/conda" run --no-capture-output -n "${ENV_
 "${CONDA_RUN[@]}" python -m pip install \
   --constraint "${PROJECT_ROOT}/environment/constraints.txt" \
   --editable "${PROJECT_ROOT}/plugins/lerobot_robot_piper" \
+  --editable "${PROJECT_ROOT}/plugins/lerobot_robot_piper_active" \
   --editable "${PROJECT_ROOT}/plugins/lerobot_teleoperator_piper"
 
 "${CONDA_RUN[@]}" python -m pip check

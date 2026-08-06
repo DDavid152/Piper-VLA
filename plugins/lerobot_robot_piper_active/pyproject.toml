@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=71,<81", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lerobot_robot_piper_active"
+version = "0.1.0"
+description = "Fail-closed active Piper follower plugin for LeRobot"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "lerobot",
+  "lerobot_robot_piper",
+  "piper-sdk==0.6.1",
+  "python-can==4.6.1",
+]
+
+[project.scripts]
+piper-finalize-active-calibration = "lerobot_robot_piper_active.calibration:main"
+
+[tool.setuptools.packages.find]
+include = ["lerobot_robot_piper_active*"]
